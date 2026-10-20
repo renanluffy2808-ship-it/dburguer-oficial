@@ -1,0 +1,64 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Baixar codigo do repositorio
+      uses: actions/checkout@v4
+
+    - name: Extrair ZIP ou organizar arquivos
+      run: |
+        if ls *.zip 1> /dev/null 2>&1; then
+          echo "Arquivo ZIP detectado! Descompactando..."
+          unzip -o *.zip
+        fi
+        if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+          SUBDIR=$(find . -maxdepth 2 -name "settings.gradle*" -exec dirname {} \; | head -n 1)
+          if [ -n "$SUBDIR" ] && [ "$SUBDIR" != "." ]; then
+            echo "Movendo arquivos de $SUBDIR para a raiz..."
+            cp -r $SUBDIR/* .
+          fi
+        fi
+
+    - name: Configurar Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Instalar Gradle 8.5
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.5'
+        cache-disabled: true
+
+    - name: Aceitar Licencas do Android SDK
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+    - name: Garantir Recursos XML e Proguard
+      run: |
+        mkdir -p app/src/main/res/values
+        echo '<resources><style name="Theme.DBurgerGestao" parent="@android:style/Theme.Material.NoActionBar" /></resources>' > app/src/main/res/values/themes.xml
+        echo '<resources><string name="app_name">D'\'' Burger Gestao</string></resources>' > app/src/main/res/values/strings.xml
+        touch app/proguard-rules.pro
+
+    - name: Compilar APK Android
+      run: |
+        chmod +x gradlew 2>/dev/null || true
+        gradle assembleDebug --no-daemon --stacktrace
+
+    - name: Salvar APK para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: dburger-gestao-apk
+        path: app/build/outputs/apk/debug/*.apk

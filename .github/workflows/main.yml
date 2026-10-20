@@ -45,11 +45,14 @@ jobs:
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
         echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-    - name: Garantir Recursos XML e Proguard
+    - name: Limpar e Recriar Recursos XML sem Aspas
       run: |
+        rm -rf app/src/main/res/values/*
         mkdir -p app/src/main/res/values
-        echo '<resources><style name="Theme.DBurgerGestao" parent="@android:style/Theme.Material.NoActionBar" /></resources>' > app/src/main/res/values/themes.xml
-        echo '<resources><string name="app_name">D'\'' Burger Gestao</string></resources>' > app/src/main/res/values/strings.xml
+        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/values/strings.xml
+        echo '<resources><string name="app_name">DBurger Gestao</string></resources>' >> app/src/main/res/values/strings.xml
+        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/values/themes.xml
+        echo '<resources><style name="Theme.DBurgerGestao" parent="@android:style/Theme.Material.NoActionBar" /></resources>' >> app/src/main/res/values/themes.xml
         touch app/proguard-rules.pro
 
     - name: Compilar APK Android
